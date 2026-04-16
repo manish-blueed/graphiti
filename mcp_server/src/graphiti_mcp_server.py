@@ -20,6 +20,7 @@ from graphiti_core.nodes import EpisodeType, EpisodicNode
 from graphiti_core.search.search_filters import SearchFilters
 from graphiti_core.utils.maintenance.graph_data_operations import clear_data
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel
 from starlette.responses import JSONResponse
 
@@ -119,13 +120,13 @@ GRAPHITI_MCP_INSTRUCTIONS = """
 Graphiti is a memory service for AI agents built on a knowledge graph. Graphiti performs well
 with dynamic data such as user interactions, changing enterprise data, and external information.
 
-Graphiti transforms information into a richly connected knowledge network, allowing you to 
-capture relationships between concepts, entities, and information. The system organizes data as episodes 
-(content snippets), nodes (entities), and facts (relationships between entities), creating a dynamic, 
-queryable memory store that evolves with new information. Graphiti supports multiple data formats, including 
+Graphiti transforms information into a richly connected knowledge network, allowing you to
+capture relationships between concepts, entities, and information. The system organizes data as episodes
+(content snippets), nodes (entities), and facts (relationships between entities), creating a dynamic,
+queryable memory store that evolves with new information. Graphiti supports multiple data formats, including
 structured JSON data, enabling seamless integration with existing data pipelines and systems.
 
-Facts contain temporal metadata, allowing you to track the time of creation and whether a fact is invalid 
+Facts contain temporal metadata, allowing you to track the time of creation and whether a fact is invalid
 (superseded by new information).
 
 Key capabilities:
@@ -135,13 +136,13 @@ Key capabilities:
 4. Retrieve specific entity edges or episodes by UUID
 5. Manage the knowledge graph with tools like delete_episode, delete_entity_edge, and clear_graph
 
-The server connects to a database for persistent storage and uses language models for certain operations. 
+The server connects to a database for persistent storage and uses language models for certain operations.
 Each piece of information is organized by group_id, allowing you to maintain separate knowledge domains.
 
-When adding information, provide descriptive names and detailed content to improve search quality. 
+When adding information, provide descriptive names and detailed content to improve search quality.
 When searching, use specific queries and consider filtering by group_id for more relevant results.
 
-For optimal performance, ensure the database is properly configured and accessible, and valid 
+For optimal performance, ensure the database is properly configured and accessible, and valid
 API keys are provided for any language model operations.
 """
 
@@ -149,6 +150,12 @@ API keys are provided for any language model operations.
 mcp = FastMCP(
     'Graphiti Agent Memory',
     instructions=GRAPHITI_MCP_INSTRUCTIONS,
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        # Add your specific gateway or domain here
+        allowed_hosts=['localhost:*', '127.0.0.1:*', '192.168.29.140:*'],
+        allowed_origins=['http://localhost:*', 'http://192.168.29.140:*'],
+    ),
 )
 
 # Global services

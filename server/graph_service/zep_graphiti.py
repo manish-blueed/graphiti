@@ -4,12 +4,12 @@ from typing import Annotated
 from fastapi import Depends, HTTPException
 from graphiti_core import Graphiti  # type: ignore
 from graphiti_core.edges import EntityEdge  # type: ignore
+from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
 from graphiti_core.errors import EdgeNotFoundError, GroupsEdgesNotFoundError, NodeNotFoundError
 from graphiti_core.llm_client import LLMClient  # type: ignore
 from graphiti_core.llm_client.config import LLMConfig
 from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
 from graphiti_core.nodes import EntityNode, EpisodicNode  # type: ignore
-from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
 
 from graph_service.config import ZepEnvDep
 from graph_service.dto import FactResult
@@ -25,12 +25,10 @@ class ZepGraphiti(Graphiti):
         password: str = '',
         llm_client: LLMClient | None = None,
         embedder=None,
-        driver=None,
+        graph_driver=None,
     ):
-        if driver is not None:
-            self._driver = driver
-        else:
-            super().__init__(uri, user, password, llm_client, embedder)
+
+        super().__init__(uri, user, password, llm_client, embedder, graph_driver=graph_driver)
 
     async def save_entity_node(self, name: str, uuid: str, group_id: str, summary: str = ''):
         new_node = EntityNode(
@@ -111,10 +109,12 @@ async def get_graphiti(settings: ZepEnvDep):
     embedder = _build_embedder(settings)
 
     if settings.database_provider == 'falkordb':
-        from graphiti_core.driver.falkordb import FalkorDBDriver
-        driver = await FalkorDBDriver.connect(
+        from graphiti_core.driver.falkordb_driver import FalkorDriver
+
+        driver = FalkorDriver(
             host=_extract_host(settings.falkordb_uri),
             port=_extract_port(settings.falkordb_uri),
+            user=settings.falkordb_username or None,
             password=settings.falkordb_password or None,
             database=settings.falkordb_database,
         )
@@ -122,7 +122,7 @@ async def get_graphiti(settings: ZepEnvDep):
             uri=settings.falkordb_uri,
             llm_client=llm_client,
             embedder=embedder,
-            driver=driver,
+            graph_driver=driver,
         )
     else:
         client = ZepGraphiti(
@@ -144,10 +144,12 @@ async def initialize_graphiti(settings: ZepEnvDep):
     embedder = _build_embedder(settings)
 
     if settings.database_provider == 'falkordb':
-        from graphiti_core.driver.falkordb import FalkorDBDriver
-        driver = await FalkorDBDriver.connect(
+        from graphiti_core.driver.falkordb_driver import FalkorDriver
+
+        driver = FalkorDriver(
             host=_extract_host(settings.falkordb_uri),
             port=_extract_port(settings.falkordb_uri),
+            username=settings.falkordb_username or None,
             password=settings.falkordb_password or None,
             database=settings.falkordb_database,
         )
@@ -155,7 +157,7 @@ async def initialize_graphiti(settings: ZepEnvDep):
             uri=settings.falkordb_uri,
             llm_client=llm_client,
             embedder=embedder,
-            driver=driver,
+            graph_driver=driver,
         )
     else:
         client = ZepGraphiti(

@@ -51,5 +51,59 @@ services:
     environment:
       - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-password}
       - NEO4J_dbms_usage__report_enabled=false
+  falkordb:
+    image: falkordb/falkordb:latest
+    profiles: ["falkordb"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - falkordb_data:/data
+    environment:
+      - FALKORDB_ARGS=--port 6379 --cluster-enabled no
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 1s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
+  graph-falkordb:
+    build:
+      args:
+        INSTALL_FALKORDB: "true"
+        GRAPHITI_VERSION: "0.28.2"
+      context: .
+    profiles: ["falkordb"]
+    ports:
+      - "8001:8000"
+    depends_on:
+      falkordb:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8001/healthcheck')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    environment:
+      - OPENAI_API_KEY=ollama
+      - OPENAI_BASE_URL=http://172.16.16.23:11434/v1
+      - MODEL_NAME=${OLLAMA_MODEL:-gemma3:12b}
+      - EMBEDDING_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      - EMBEDDING_DIM=${OLLAMA_EMBEDDING_DIM:-768}
+      - FALKORDB_HOST=localhost
+      # - FALKORDB_USERNAME=demo
+      # - FALKORDB_PASSWORD=demo
+      - FALKORDB_URI=redis://falkordb:6379
+      - FALKORDB_DATABASE=default_db
+      - GRAPHITI_BACKEND=falkordb
+      - PORT=8001
+      - database_provider=falkordb
+
 volumes:
   neo4j_data:
+  falkordb_data:

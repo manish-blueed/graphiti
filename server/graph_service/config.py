@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     neo4j_user: str = Field(default='neo4j')
     neo4j_password: str = Field(default='password')
     falkordb_uri: str = Field(default='redis://localhost:6379')
+    falkordb_username: str = Field(default='')
     falkordb_password: str = Field(default='')
     falkordb_database: str = Field(default='default_db')
 

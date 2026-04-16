@@ -44,11 +44,13 @@ COPY ./server/graph_service ./graph_service
 # Then install graphiti-core from PyPI at the desired version
 # This prevents the stale lockfile from pinning an old graphiti-core version
 ARG INSTALL_FALKORDB=false
+RUN echo "GRAPHITI_VERSION is: ${GRAPHITI_VERSION}"
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev && \
     if [ -n "$GRAPHITI_VERSION" ]; then \
         if [ "$INSTALL_FALKORDB" = "true" ]; then \
-            uv pip install --system --upgrade "graphiti-core[falkordb]==$GRAPHITI_VERSION"; \
+            uv pip install graphiti-core[falkordb]; \
+            # uv pip install --system --upgrade "graphiti-core[falkordb]==$GRAPHITI_VERSION"; \
         else \
             uv pip install --system --upgrade "graphiti-core==$GRAPHITI_VERSION"; \
         fi; \

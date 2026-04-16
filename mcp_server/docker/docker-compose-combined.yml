@@ -8,16 +8,16 @@ services:
       - "6379:6379"
       - "3000:3000"
     environment:
-      - FALKORDB_PASSWORD=${FALKORDB_PASSWORD:-}
+      - FALKORDB_ARGS=--port 6379 --cluster-enabled no
       - BROWSER=${BROWSER:-1}
     volumes:
       - falkordb_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-p", "6379", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 1s
+      timeout: 10s
+      retries: 10
+      start_period: 3s
 
   graphiti-mcp:
     build:
@@ -33,7 +33,7 @@ services:
       - CONFIG_PATH=/app/mcp/config/config.yaml
       - PATH=/root/.local/bin:${PATH}
     volumes:
-      - ./config/config-docker-falkordb.yaml:/app/mcp/config/config.yaml:ro
+      - ./config/config-docker-ollama.yaml:/app/mcp/config/config.yaml:ro
     ports:
       - "8000:8000"
     command: ["uv", "run", "main.py"]
@@ -49,15 +49,18 @@ services:
       falkordb:
         condition: service_healthy
     environment:
-      - OPENAI_API_KEY=${OLLAMA_API_KEY:-ollama}
-      - OPENAI_BASE_URL=${OLLAMA_API_URL:-http://172.16.16.23:11434/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-ollama}
+      - OPENAI_BASE_URL=${OLLAMA_API_URL:-http://localhost:11434/v1}
       - MODEL_NAME=${OLLAMA_MODEL:-gemma3:12b}
       - EMBEDDING_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
       - EMBEDDING_DIM=${OLLAMA_EMBEDDING_DIM:-768}
-      - DATABASE_PROVIDER=falkordb
-      - FALKORDB_URI=${FALKORDB_URI:-redis://falkordb:6379}
-      - FALKORDB_PASSWORD=${FALKORDB_PASSWORD:-}
-      - FALKORDB_DATABASE=${FALKORDB_DATABASE:-default_db}
+      - FALKORDB_HOST={FALKORDB_HOST:-localhost}
+      # - FALKORDB_PASSWORD={FALKORDB_PASSWORD:-demo}
+      - FALKORDB_URI=redis://falkordb:6379
+      - FALKORDB_DATABASE=default_db
+      - GRAPHITI_BACKEND=falkordb
+      - PORT=8001
+      - database_provider=falkordb
     ports:
       - "8001:8000"
     command: ["uv", "run", "python", "-m", "graph_service.main"]
