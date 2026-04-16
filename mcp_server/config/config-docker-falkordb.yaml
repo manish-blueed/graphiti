@@ -8,13 +8,13 @@ server:
   
 llm:
   provider: "openai"  # Options: openai, azure_openai, anthropic, gemini, groq
-  model: "gpt-4o-mini"
+  model: ${OLLAMA_MODEL}
   max_tokens: 4096
   
   providers:
     openai:
-      api_key: ${OPENAI_API_KEY}
-      api_url: ${OPENAI_API_URL:https://api.openai.com/v1}
+      api_key: ${OLLAMA_API_KEY}
+      api_url: ${OLLAMA_API_URL}
       organization_id: ${OPENAI_ORGANIZATION_ID:}
       
     azure_openai:
@@ -40,13 +40,13 @@ llm:
 
 embedder:
   provider: "openai"  # Options: openai, azure_openai, gemini, voyage
-  model: "text-embedding-3-small"
-  dimensions: 1536
+  model: ${OLLAMA_EMBEDDING_MODEL}
+  dimensions: ${OLLAMA_EMBEDDING_DIM}
   
   providers:
     openai:
-      api_key: ${OPENAI_API_KEY}
-      api_url: ${OPENAI_API_URL:https://api.openai.com/v1}
+      api_key: ${OLLAMA_API_KEY}
+      api_url: ${OLLAMA_API_URL}
       organization_id: ${OPENAI_ORGANIZATION_ID:}
       
     azure_openai:
@@ -71,10 +71,9 @@ database:
   
   providers:
     falkordb:
-      # Use environment variable if set, otherwise use Docker service hostname
-      uri: ${FALKORDB_URI:redis://falkordb:6379}
-      password: ${FALKORDB_PASSWORD:}
-      database: ${FALKORDB_DATABASE:default_db}
+      uri: ${FALKORDB_URI}
+      password: ${FALKORDB_PASSWORD}
+      database: ${FALKORDB_DATABASE}
 
 graphiti:
   group_id: ${GRAPHITI_GROUP_ID:main}

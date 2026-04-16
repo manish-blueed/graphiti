@@ -1,0 +1,15 @@
+# Graphiti MCP Server - Cursor IDE Configuration
+# 
+# Add this to your Cursor MCP settings:
+# Settings > MCP > Add new MCP server
+#
+# Or add to .cursor/mcp.json in your project
+
+{
+  "mcpServers": {
+    "graphiti": {
+      "url": "http://graphiti.internal.company.com/mcp/",
+      "description": "Knowledge Graph for AI memory - stores entities, relationships, and user interactions"
+    }
+  }
+}

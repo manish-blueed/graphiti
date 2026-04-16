@@ -1,0 +1,208 @@
+# Organization Cursor Rules - Graphiti Knowledge Graph
+
+## Purpose
+This file defines standards for building, querying, and maintaining knowledge graphs using Graphiti. All team members should follow these practices when working with the temporal knowledge graph.
+
+---
+
+## 1. Knowledge Graph Fundamentals
+
+### Core Concepts
+- **Nodes**: Individual pieces of knowledge (preferences, procedures, facts, entities)
+- **Edges**: Relationships between nodes with temporal validity
+- **Episodes**: Discrete interactions or events that add knowledge to the graph
+- **Facts**: Factual relationships (e.g., "service-X depends on service-Y")
+
+### Node Categories (Use Consistently)
+```
+Preference   - User preferences and settings
+Procedure    - Documented processes and workflows
+Requirement  - System or user requirements
+Fact         - Factual relationships and data
+Entity       - Named entities (people, products, services)
+Event        - Notable events or occurrences
+Policy       - Rules and organizational policies
+```
+
+---
+
+## 2. Working with the Knowledge Graph
+
+### Before Starting Any Task
+1. Search the graph for existing knowledge relevant to your task
+2. Look for stored preferences, procedures, and facts
+3. Explore relationships using graph traversal
+4. Filter by category, date range, or entity type
+
+### Adding New Knowledge
+1. Capture requirements and preferences immediately when discovered
+2. Use clear, descriptive names for nodes
+3. Break long requirements into logical, searchable chunks
+4. Document procedures step-by-step
+5. Record relationships between entities as facts
+6. Set accurate temporal validity (`valid_at`, `valid_until`)
+
+### Updating Existing Knowledge
+1. Search for existing knowledge first
+2. Only add what's changed or new - avoid duplicating
+3. Update temporal validity when knowledge changes
+4. Mark old knowledge as expired rather than deleting
+
+### During Your Work
+- Align work with discovered preferences
+- Follow documented procedures step-by-step
+- Apply factual relationships to decisions
+- Maintain consistency with established knowledge
+
+---
+
+## 3. Graph Construction Standards
+
+### Episode Creation
+- One episode per discrete interaction or event
+- Include all relevant facts, entities, and relationships
+- Use consistent naming: `{action}-{entity}` (e.g., `create-user`, `update-order`)
+- Set accurate temporal timestamps
+
+### Node Standards
+```python
+# Required fields
+name: str          # Descriptive, searchable identifier
+category: str      # One of the standard categories
+summary: str       # Brief description (1-2 sentences)
+
+# Recommended fields
+attributes: dict   # Key-value metadata
+valid_at: datetime # When this knowledge became valid
+valid_until: datetime  # When this knowledge expires (None = permanent)
+```
+
+### Edge Standards
+- Represent relationships between nodes
+- Use descriptive fact summaries
+- Always set temporal validity
+- Common relationship types: `depends_on`, `owns`, `manages`, `relates_to`
+
+---
+
+## 4. Search & Retrieval Patterns
+
+### Query Strategies
+```
+Basic search: Filter by category and keywords
+Temporal queries: Search within specific time ranges
+Graph traversal: Explore related nodes using depth limits
+Complex queries: Combine node search + fact search
+```
+
+### Best Practices
+- Start broad, then narrow with filters
+- Use relationship context when available
+- Consider recency when ranking results
+- Prioritize specific matches over general ones
+
+---
+
+## 5. Microservices Integration
+
+### Service Representation
+Each microservice should be tracked in the graph:
+```python
+ServiceNode:
+  name: "service-{service-name}"
+  category: "Entity"
+  summary: "Service responsibility description"
+  attributes:
+    owner: "team-name"
+    repository: "git-url"
+```
+
+### Dependency Tracking
+- Track service dependencies as edges
+- Record API contracts as procedures
+- Document team ownership
+
+---
+
+## 6. Code Style (Python)
+
+### Conventions (from pyproject.toml)
+- 4-space indentation
+- 100-character line length
+- Single quotes for strings
+- Snake_case for modules/functions
+- PascalCase for classes and Pydantic models
+- Explicit type hints required
+
+### Naming Conventions
+```
+Modules:     graph_builder.py
+Classes:     GraphBuilder, EpisodeNode
+Functions:   build_episode, search_knowledge
+Constants:   MAX_DEPTH, DEFAULT_LIMIT
+```
+
+---
+
+## 7. Testing Standards
+
+### Test Organization
+```
+tests/
+  test_graph_operations.py   # Core graph functionality
+  test_search_retrieval.py  # Query functionality
+```
+
+### Requirements
+- 80% minimum coverage for new code
+- Integration tests for graph operations
+- Test temporal validity logic
+- Mock external dependencies
+
+### Commands
+```bash
+make test     # Unit tests
+make check    # Format, lint, and test
+```
+
+---
+
+## 8. Data Quality & Consistency
+
+### Validation Rules
+- All nodes require: `name`, `category`, `summary`
+- All edges require: source, target, relationship description
+- Temporal fields must be valid datetime objects
+- UUIDs must reference existing nodes
+
+### Maintenance
+- Audit graph periodically for orphaned nodes
+- Remove outdated knowledge by setting `valid_until`
+- Avoid duplicates - update existing nodes
+- Keep naming conventions consistent
+
+---
+
+## 9. Observability
+
+### Logging
+- Log all graph mutations (adds, updates, deletes)
+- Include correlation IDs for tracing
+- Log search queries for analytics
+
+### Metrics
+- Graph size (nodes, edges)
+- Query latency
+- Search relevance
+- Knowledge retention rate
+
+---
+
+## Remember
+The knowledge graph is the organization's shared memory. Every team member contributes to and benefits from accurate, well-organized knowledge.
+
+**Key principles:**
+- Search before creating
+- Update rather than duplicate
+- Maintain temporal accuracy
+- Future queries depend on today's structure

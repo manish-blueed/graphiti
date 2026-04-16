@@ -112,6 +112,7 @@ class LLMClientFactory:
                     raise ValueError('OpenAI provider configuration not found')
 
                 api_key = config.providers.openai.api_key
+                api_url = config.providers.openai.api_url
                 _validate_api_key('OpenAI', api_key, logger)
 
                 from graphiti_core.llm_client.config import LLMConfig as CoreLLMConfig
@@ -125,6 +126,7 @@ class LLMClientFactory:
                     small_model=small_model,
                     temperature=config.temperature,
                     max_tokens=config.max_tokens,
+                    base_url=api_url if api_url else None,
                 )
 
                 # Check if this is a reasoning model (o1, o3, gpt-5 family)

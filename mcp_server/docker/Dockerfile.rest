@@ -1,0 +1,58 @@
+# syntax=docker/dockerfile:1
+# Graphiti REST Server Image
+# Provides FastAPI REST endpoints for the knowledge graph
+
+FROM python:3.11-slim-bookworm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for Python package management
+ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN sh /uv-installer.sh && rm /uv-installer.sh
+
+# Add uv to PATH
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Configure uv for optimal Docker usage
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never \
+    PYTHONUNBUFFERED=1
+
+# Set up REST server directory
+WORKDIR /app
+
+# Accept graphiti-core version as build argument
+ARG GRAPHITI_CORE_VERSION=0.28.1
+
+# Copy server project files for dependency installation
+COPY server/pyproject.toml server/uv.lock ./
+
+# Remove the local path override for graphiti-core in Docker builds
+# Install with BOTH neo4j and falkordb extras for maximum flexibility
+RUN sed -i '/\[tool\.uv\.sources\]/,/graphiti-core/d' server/pyproject.toml && \
+    sed -i "s/graphiti-core\[falkordb\][>=]\+[0-9]\+\.[0-9]\+\.[0-9]\+/graphiti-core[neo4j,falkordb]==${GRAPHITI_CORE_VERSION}/" server/pyproject.toml && \
+    echo "Regenerating lock file for PyPI graphiti-core..." && \
+    rm -f server/uv.lock && \
+    uv lock
+
+# Install Python dependencies (exclude dev dependency group)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-group dev
+
+# Copy REST server application code
+COPY server/graph_service/ ./graph_service/
+
+# Expose REST API port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/healthcheck || exit 1
+
+# Run the REST server
+CMD ["uv", "run", "--no-sync", "python", "-m", "graph_service.main"]

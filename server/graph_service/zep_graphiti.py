@@ -6,7 +6,10 @@ from graphiti_core import Graphiti  # type: ignore
 from graphiti_core.edges import EntityEdge  # type: ignore
 from graphiti_core.errors import EdgeNotFoundError, GroupsEdgesNotFoundError, NodeNotFoundError
 from graphiti_core.llm_client import LLMClient  # type: ignore
+from graphiti_core.llm_client.config import LLMConfig
+from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
 from graphiti_core.nodes import EntityNode, EpisodicNode  # type: ignore
+from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
 
 from graph_service.config import ZepEnvDep
 from graph_service.dto import FactResult
@@ -15,8 +18,19 @@ logger = logging.getLogger(__name__)
 
 
 class ZepGraphiti(Graphiti):
-    def __init__(self, uri: str, user: str, password: str, llm_client: LLMClient | None = None):
-        super().__init__(uri, user, password, llm_client)
+    def __init__(
+        self,
+        uri: str,
+        user: str = '',
+        password: str = '',
+        llm_client: LLMClient | None = None,
+        embedder=None,
+        driver=None,
+    ):
+        if driver is not None:
+            self._driver = driver
+        else:
+            super().__init__(uri, user, password, llm_client, embedder)
 
     async def save_entity_node(self, name: str, uuid: str, group_id: str, summary: str = ''):
         new_node = EntityNode(
@@ -71,18 +85,53 @@ class ZepGraphiti(Graphiti):
             raise HTTPException(status_code=404, detail=e.message) from e
 
 
-async def get_graphiti(settings: ZepEnvDep):
-    client = ZepGraphiti(
-        uri=settings.neo4j_uri,
-        user=settings.neo4j_user,
-        password=settings.neo4j_password,
+def _build_llm_client(settings: ZepEnvDep) -> OpenAIGenericClient:
+    llm_config = LLMConfig(
+        api_key=settings.openai_api_key,
+        model=settings.model_name,
+        base_url=settings.openai_base_url,
     )
-    if settings.openai_base_url is not None:
-        client.llm_client.config.base_url = settings.openai_base_url
-    if settings.openai_api_key is not None:
-        client.llm_client.config.api_key = settings.openai_api_key
-    if settings.model_name is not None:
-        client.llm_client.model = settings.model_name
+    return OpenAIGenericClient(config=llm_config)
+
+
+def _build_embedder(settings: ZepEnvDep) -> OpenAIEmbedder | None:
+    if settings.embedding_model_name is None:
+        return None
+    embedder_config = OpenAIEmbedderConfig(
+        api_key=settings.openai_api_key,
+        embedding_model=settings.embedding_model_name,
+        base_url=settings.embedding_base_url or settings.openai_base_url,
+        embedding_dim=settings.embedding_dim or 1024,
+    )
+    return OpenAIEmbedder(config=embedder_config)
+
+
+async def get_graphiti(settings: ZepEnvDep):
+    llm_client = _build_llm_client(settings)
+    embedder = _build_embedder(settings)
+
+    if settings.database_provider == 'falkordb':
+        from graphiti_core.driver.falkordb import FalkorDBDriver
+        driver = await FalkorDBDriver.connect(
+            host=_extract_host(settings.falkordb_uri),
+            port=_extract_port(settings.falkordb_uri),
+            password=settings.falkordb_password or None,
+            database=settings.falkordb_database,
+        )
+        client = ZepGraphiti(
+            uri=settings.falkordb_uri,
+            llm_client=llm_client,
+            embedder=embedder,
+            driver=driver,
+        )
+    else:
+        client = ZepGraphiti(
+            uri=settings.neo4j_uri,
+            user=settings.neo4j_user,
+            password=settings.neo4j_password,
+            llm_client=llm_client,
+            embedder=embedder,
+        )
 
     try:
         yield client
@@ -91,12 +140,43 @@ async def get_graphiti(settings: ZepEnvDep):
 
 
 async def initialize_graphiti(settings: ZepEnvDep):
-    client = ZepGraphiti(
-        uri=settings.neo4j_uri,
-        user=settings.neo4j_user,
-        password=settings.neo4j_password,
-    )
+    llm_client = _build_llm_client(settings)
+    embedder = _build_embedder(settings)
+
+    if settings.database_provider == 'falkordb':
+        from graphiti_core.driver.falkordb import FalkorDBDriver
+        driver = await FalkorDBDriver.connect(
+            host=_extract_host(settings.falkordb_uri),
+            port=_extract_port(settings.falkordb_uri),
+            password=settings.falkordb_password or None,
+            database=settings.falkordb_database,
+        )
+        client = ZepGraphiti(
+            uri=settings.falkordb_uri,
+            llm_client=llm_client,
+            embedder=embedder,
+            driver=driver,
+        )
+    else:
+        client = ZepGraphiti(
+            uri=settings.neo4j_uri,
+            user=settings.neo4j_user,
+            password=settings.neo4j_password,
+            llm_client=llm_client,
+            embedder=embedder,
+        )
     await client.build_indices_and_constraints()
+
+
+def _extract_host(uri: str) -> str:
+    return uri.replace('redis://', '').split(':')[0]
+
+
+def _extract_port(uri: str) -> int:
+    try:
+        return int(uri.split(':')[-1])
+    except (ValueError, IndexError):
+        return 6379
 
 
 def get_fact_result_from_edge(edge: EntityEdge):

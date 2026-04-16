@@ -173,21 +173,41 @@ database:
 
 ### Using Ollama for Local LLM
 
-To use Ollama with the MCP server, configure it as an OpenAI-compatible endpoint:
+A pre-configured Docker Compose setup is available for using Ollama with the MCP server.
 
-```yaml
-llm:
-  provider: "openai"
-  model: "gpt-oss:120b"  # or your preferred Ollama model
-  api_base: "http://localhost:11434/v1"
-  api_key: "ollama"  # dummy key required
+**Prerequisites:**
+1. Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh`
+2. Pull required models:
+   ```bash
+   ollama pull deepseek-r1:7b  # LLM
+   ollama pull nomic-embed-text  # Embeddings
+   ```
+3. Start Ollama: `ollama serve`
 
-embedder:
-  provider: "sentence_transformers"  # recommended for local setup
-  model: "all-MiniLM-L6-v2"
+**Quick Start with Docker:**
+```bash
+cd mcp_server/docker
+
+# Copy and customize environment (or use defaults)
+cp ../.env.ollama.example ../.env
+
+# Start Neo4j + MCP server with Ollama
+docker compose -f docker-compose-ollama.yml up
 ```
 
-Make sure Ollama is running locally with: `ollama serve`
+**Configuration:**
+The `docker-compose-ollama.yml` uses `config-docker-ollama.yaml` which is pre-configured for:
+- LLM: `deepseek-r1:7b` (configurable via `OLLAMA_MODEL`)
+- Embeddings: `nomic-embed-text` with 768 dimensions
+- Semaphore limit: 3 (lower for local models)
+
+Customize via environment variables in `.env`:
+```bash
+OLLAMA_MODEL=llama3:8b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+OLLAMA_EMBEDDING_DIM=768
+SEMAPHORE_LIMIT=3
+```
 
 ### Entity Types
 

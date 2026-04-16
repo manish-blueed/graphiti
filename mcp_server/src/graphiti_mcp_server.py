@@ -13,7 +13,9 @@ from typing import Any, Optional
 
 from dotenv import load_dotenv
 from graphiti_core import Graphiti
+from graphiti_core.cross_encoder.openai_reranker_client import OpenAIRerankerClient
 from graphiti_core.edges import EntityEdge
+from graphiti_core.llm_client.config import LLMConfig
 from graphiti_core.nodes import EpisodeType, EpisodicNode
 from graphiti_core.search.search_filters import SearchFilters
 from graphiti_core.utils.maintenance.graph_data_operations import clear_data
@@ -187,6 +189,22 @@ class GraphitiService:
             except Exception as e:
                 logger.warning(f'Failed to create embedder client: {e}')
 
+            # Create cross_encoder client using the same LLM config
+            cross_encoder_client = None
+            if llm_client is not None and hasattr(llm_client, 'config'):
+                try:
+                    cross_encoder_config = LLMConfig(
+                        api_key=llm_client.config.api_key,
+                        model=llm_client.config.model,
+                        base_url=llm_client.config.base_url,
+                        max_tokens=llm_client.config.max_tokens,
+                    )
+                    cross_encoder_client = OpenAIRerankerClient(
+                        client=llm_client, config=cross_encoder_config
+                    )
+                except Exception as e:
+                    logger.warning(f'Failed to create cross_encoder client: {e}')
+
             # Get database configuration
             db_config = DatabaseDriverFactory.create_config(self.config.database)
 
@@ -226,6 +244,7 @@ class GraphitiService:
                         graph_driver=falkor_driver,
                         llm_client=llm_client,
                         embedder=embedder_client,
+                        cross_encoder=cross_encoder_client,
                         max_coroutines=self.semaphore_limit,
                     )
                 else:
@@ -236,6 +255,7 @@ class GraphitiService:
                         password=db_config['password'],
                         llm_client=llm_client,
                         embedder=embedder_client,
+                        cross_encoder=cross_encoder_client,
                         max_coroutines=self.semaphore_limit,
                     )
             except Exception as db_error:

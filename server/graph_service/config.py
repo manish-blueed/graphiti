@@ -11,9 +11,15 @@ class Settings(BaseSettings):
     openai_base_url: str | None = Field(None)
     model_name: str | None = Field(None)
     embedding_model_name: str | None = Field(None)
-    neo4j_uri: str
-    neo4j_user: str
-    neo4j_password: str
+    embedding_dim: int | None = Field(None)
+    embedding_base_url: str | None = Field(None)
+    database_provider: str = Field(default='neo4j')
+    neo4j_uri: str = Field(default='bolt://localhost:7687')
+    neo4j_user: str = Field(default='neo4j')
+    neo4j_password: str = Field(default='password')
+    falkordb_uri: str = Field(default='redis://localhost:6379')
+    falkordb_password: str = Field(default='')
+    falkordb_database: str = Field(default='default_db')
 
     model_config = SettingsConfigDict(env_file='.env', extra='ignore')
 
