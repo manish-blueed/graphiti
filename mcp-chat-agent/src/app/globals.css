@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 10, 10, 10;
+  --background-end-rgb: 0, 0, 0;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer components {
+  .chat-bubble {
+    @apply max-w-[80%] rounded-2xl px-4 py-3 mb-4 transition-all duration-200;
+  }
+  .chat-bubble-user {
+    @apply bg-blue-600 text-white self-end rounded-tr-none;
+  }
+  .chat-bubble-assistant {
+    @apply bg-zinc-800 text-zinc-100 self-start rounded-tl-none;
+  }
+  .tool-call-indicator {
+    @apply text-xs text-zinc-500 italic mb-2 flex items-center gap-2;
+  }
+}

@@ -40,6 +40,9 @@ services:
 
   graphiti-rest:
     build:
+      args:
+        INSTALL_FALKORDB: "true"
+        GRAPHITI_VERSION: "0.28.2"
       context: ../server
       dockerfile: ../mcp_server/docker/Dockerfile.rest
     env_file:
@@ -55,7 +58,6 @@ services:
       - EMBEDDING_MODEL_NAME=${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
       - EMBEDDING_DIM=${OLLAMA_EMBEDDING_DIM:-768}
       - FALKORDB_HOST={FALKORDB_HOST:-localhost}
-      # - FALKORDB_PASSWORD={FALKORDB_PASSWORD:-demo}
       - FALKORDB_URI=redis://falkordb:6379
       - FALKORDB_DATABASE=default_db
       - GRAPHITI_BACKEND=falkordb
